@@ -1,0 +1,4 @@
+{
+  "conventionalCommits.scopes": ["core", "lint", "infra", "domain"],
+  "cSpell.words": ["encrypter", "hasher"]
+}
