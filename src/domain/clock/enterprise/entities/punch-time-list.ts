@@ -1,4 +1,5 @@
 import { WatchedList } from '@/core/entities/watched-list'
+
 import { PunchTime } from './punch-time'
 
 export class PunchTimeList extends WatchedList<PunchTime> {

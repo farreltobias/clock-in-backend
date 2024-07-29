@@ -1,4 +1,5 @@
 import { WatchedList } from '@/core/entities/watched-list'
+
 import { EmployeePunch } from './employee-punch'
 
 export class EmployeePunchList extends WatchedList<EmployeePunch> {
