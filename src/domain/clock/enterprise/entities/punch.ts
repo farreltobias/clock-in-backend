@@ -2,13 +2,11 @@ import { Entity } from '@/core/entities/entity'
 import { UniqueEntityID } from '@/core/entities/unique-entity-id'
 import { Optional } from '@/core/types/optional'
 
-import { PunchTimeList } from './punch-time-list'
-
 export interface PunchProps {
   date: Date
-  times: PunchTimeList
-  total: number
+  employeeId: UniqueEntityID
 
+  total: number
   break?: number | null
   overtime?: number | null
   negative?: number | null
@@ -22,13 +20,8 @@ export class Punch extends Entity<PunchProps> {
     return this.props.date
   }
 
-  get times(): PunchTimeList {
-    return this.props.times
-  }
-
-  set times(times: PunchTimeList) {
-    this.props.times = times
-    this.touch()
+  get employeeId(): UniqueEntityID {
+    return this.props.employeeId
   }
 
   get total(): number {
@@ -80,14 +73,13 @@ export class Punch extends Entity<PunchProps> {
   }
 
   static create(
-    props: Optional<PunchProps, 'createdAt' | 'times' | 'total'>,
+    props: Optional<PunchProps, 'createdAt' | 'total'>,
     id?: UniqueEntityID,
   ): Punch {
     return new Punch(
       {
         ...props,
         total: props.total ?? 0,
-        times: props.times ?? new PunchTimeList(),
         createdAt: props.createdAt ?? new Date(),
       },
       id,

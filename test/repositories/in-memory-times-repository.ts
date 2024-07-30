@@ -1,23 +1,30 @@
-import { PaginationParams } from '@/core/repositories/pagination-params'
-import { TimesRepository } from '@/domain/clock/application/repositories/times-repository'
+import {
+  FindManyByPunchIdDTO,
+  TimesRepository,
+} from '@/domain/clock/application/repositories/times-repository'
 import { Time } from '@/domain/clock/enterprise/entities/time'
 
 export class InMemoryTimesRepository implements TimesRepository {
   public items: Time[] = []
 
-  async findManyByPunchIdAndDate(
-    params: { punchId: string; date: Date } & PaginationParams,
-  ): Promise<Time[]> {
-    const times = this.items.filter(
-      (item) =>
-        item.punchId.toString() === params.punchId &&
-        item.start.toDateString() === params.date.toDateString(),
-    )
+  async findManyByPunchId({
+    page,
+    punchId,
+  }: FindManyByPunchIdDTO): Promise<Time[]> {
+    const times = this.items
+      .filter((item) => item.punchId.equals(punchId))
+      .slice(0, page * 20)
 
     return times
   }
 
   async create(time: Time) {
     this.items.push(time)
+  }
+
+  async save(time: Time): Promise<void> {
+    const index = this.items.findIndex((item) => item.id.equals(time.id))
+
+    this.items[index] = time
   }
 }

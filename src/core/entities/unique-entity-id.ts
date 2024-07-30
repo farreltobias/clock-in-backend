@@ -15,7 +15,7 @@ export class UniqueEntityID {
     this.value = value ?? randomUUID()
   }
 
-  equals(id: UniqueEntityID): boolean {
-    return id.toValue() === this.value
+  equals(id: UniqueEntityID | string): boolean {
+    return id.toString() === this.value
   }
 }

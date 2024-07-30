@@ -2,15 +2,12 @@ import { PaginationParams } from '@/core/repositories/pagination-params'
 
 import { Time } from '../../enterprise/entities/time'
 
-type FindManyByPunchIdAndDateDTO = {
+export type FindManyByPunchIdDTO = {
   punchId: string
-  date: Date
 } & PaginationParams
 
 export abstract class TimesRepository {
-  abstract findManyByPunchIdAndDate(
-    params: FindManyByPunchIdAndDateDTO,
-  ): Promise<Time[]>
-
+  abstract findManyByPunchId(params: FindManyByPunchIdDTO): Promise<Time[]>
   abstract create(time: Time): Promise<void>
+  abstract save(time: Time): Promise<void>
 }

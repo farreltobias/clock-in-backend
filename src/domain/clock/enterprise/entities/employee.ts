@@ -2,7 +2,6 @@ import { Entity } from '@/core/entities/entity'
 import { UniqueEntityID } from '@/core/entities/unique-entity-id'
 import { Optional } from '@/core/types/optional'
 
-import { EmployeePunchList } from './employee-punch-list'
 import { CPF } from './value-objects/cpf'
 import { EmployeeStatus } from './value-objects/employee-status'
 import { NanoID } from './value-objects/nano-id'
@@ -11,9 +10,7 @@ export interface EmployeeProps {
   name: string
   cpf: CPF
   code: NanoID
-
   status: EmployeeStatus
-  punches: EmployeePunchList
 }
 
 export class Employee extends Entity<EmployeeProps> {
@@ -37,12 +34,8 @@ export class Employee extends Entity<EmployeeProps> {
     this.props.status = status
   }
 
-  get punches(): EmployeePunchList {
-    return this.props.punches
-  }
-
   static create(
-    props: Optional<EmployeeProps, 'code' | 'status' | 'punches'>,
+    props: Optional<EmployeeProps, 'code' | 'status'>,
     id?: UniqueEntityID,
   ): Employee {
     return new Employee(
@@ -50,7 +43,6 @@ export class Employee extends Entity<EmployeeProps> {
         ...props,
         code: props.code ?? NanoID.create(),
         status: props.status ?? EmployeeStatus.IDLE,
-        punches: props.punches ?? new EmployeePunchList(),
       },
       id,
     )

@@ -1,3 +1,4 @@
+import dayjs from 'dayjs'
 import { makeEmployee } from 'test/factories/make-employee'
 import { makePunch } from 'test/factories/make-punch'
 import { makeTime } from 'test/factories/make-time'
@@ -5,48 +6,27 @@ import { InMemoryEmployeesRepository } from 'test/repositories/in-memory-employe
 import { InMemoryPunchesRepository } from 'test/repositories/in-memory-punches-repository'
 import { InMemoryTimesRepository } from 'test/repositories/in-memory-times-repository'
 
-import { AlreadyPunchedInError } from './errors/already-punched-in-error'
-import { PunchInUseCase } from './punch-in'
+import { AlreadyPunchedOutError } from './errors/already-punched-out-error'
+import { PunchOutUseCase } from './punch-out'
 
 let inMemoryTimesRepository: InMemoryTimesRepository
 let inMemoryPunchesRepository: InMemoryPunchesRepository
 let inMemoryEmployeesRepository: InMemoryEmployeesRepository
-let sut: PunchInUseCase
+let sut: PunchOutUseCase
 
-describe('Punch In Use Case', () => {
+describe('Punch Out Use Case', () => {
   beforeEach(() => {
     inMemoryTimesRepository = new InMemoryTimesRepository()
     inMemoryPunchesRepository = new InMemoryPunchesRepository()
     inMemoryEmployeesRepository = new InMemoryEmployeesRepository()
-    sut = new PunchInUseCase(
+    sut = new PunchOutUseCase(
       inMemoryEmployeesRepository,
       inMemoryPunchesRepository,
       inMemoryTimesRepository,
     )
   })
 
-  it('should be able to punch in', async () => {
-    const employee = makeEmployee()
-    inMemoryEmployeesRepository.items.push(employee)
-
-    const result = await sut.execute({
-      code: employee.code.toString(),
-      date: new Date('2021-01-01T00:00:00'),
-    })
-
-    expect(result.isRight()).toBe(true)
-    expect(result.value).toEqual({
-      punch: expect.objectContaining({
-        employeeId: employee.id,
-        date: new Date('2021-01-01T00:00:00'),
-      }),
-      time: expect.objectContaining({
-        start: new Date('2021-01-01T00:00:00'),
-      }),
-    })
-  })
-
-  it('should not be able to punch in if already punched in', async () => {
+  it('should be able to punch out', async () => {
     const employee = makeEmployee()
     inMemoryEmployeesRepository.items.push(employee)
 
@@ -56,12 +36,42 @@ describe('Punch In Use Case', () => {
     const time = makeTime({ punchId: punch.id, start: punch.date })
     inMemoryTimesRepository.items.push(time)
 
+    const date = dayjs(punch.date).add(1, 'h').toDate()
+
     const result = await sut.execute({
       code: employee.code.toString(),
-      date: time.start,
+      date,
+    })
+
+    expect(result.isRight()).toBe(true)
+    expect(result.value).toEqual({
+      time: expect.objectContaining({
+        end: date,
+        totalInMinutes: dayjs(date).diff(time.start, 'minute'),
+      }),
+    })
+  })
+
+  it('should not be able to punch out if already punched out', async () => {
+    const employee = makeEmployee()
+    inMemoryEmployeesRepository.items.push(employee)
+
+    const punch = makePunch({ employeeId: employee.id })
+    inMemoryPunchesRepository.items.push(punch)
+
+    const time = makeTime({
+      punchId: punch.id,
+      start: punch.date,
+      end: dayjs(punch.date).add(1, 'h').toDate(),
+    })
+    inMemoryTimesRepository.items.push(time)
+
+    const result = await sut.execute({
+      code: employee.code.toString(),
+      date: time.end as Date,
     })
 
     expect(result.isLeft()).toBe(true)
-    expect(result.value).toBeInstanceOf(AlreadyPunchedInError)
+    expect(result.value).toBeInstanceOf(AlreadyPunchedOutError)
   })
 })

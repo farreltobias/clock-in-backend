@@ -3,51 +3,46 @@ import { Injectable } from '@nestjs/common'
 import { Either, left, right } from '@/core/either'
 import { ResourceNotFoundError } from '@/core/errors/errors/resource-not-found-error'
 
-import { Punch } from '../../enterprise/entities/punch'
 import { Time } from '../../enterprise/entities/time'
 import { EmployeesRepository } from '../repositories/employees-repository'
 import { PunchesRepository } from '../repositories/punches-repository'
 import { TimesRepository } from '../repositories/times-repository'
-import { AlreadyPunchedInError } from './errors/already-punched-in-error'
+import { AlreadyPunchedOutError } from './errors/already-punched-out-error'
 
-interface PunchInDTO {
+interface PunchOutDTO {
   date: Date
   code: string
 }
 
-type PunchInResponse = Either<
+type PunchOutResponse = Either<
   ResourceNotFoundError,
   {
-    punch: Punch
     time: Time
   }
 >
 
 @Injectable()
-export class PunchInUseCase {
+export class PunchOutUseCase {
   constructor(
     private employeesRepository: EmployeesRepository,
     private punchesRepository: PunchesRepository,
     private timesRepository: TimesRepository,
   ) {}
 
-  async execute({ code, date }: PunchInDTO): Promise<PunchInResponse> {
+  async execute({ code, date }: PunchOutDTO): Promise<PunchOutResponse> {
     const employee = await this.employeesRepository.findByCode(code)
 
     if (!employee) {
       return left(new ResourceNotFoundError())
     }
 
-    let punch = await this.punchesRepository.findByEmployeeIdAndDate(
+    const punch = await this.punchesRepository.findByEmployeeIdAndDate(
       employee.id.toString(),
       date,
     )
 
     if (!punch) {
-      punch = Punch.create({
-        date,
-        employeeId: employee.id,
-      })
+      return left(new ResourceNotFoundError())
     }
 
     const times = await this.timesRepository.findManyByPunchId({
@@ -55,7 +50,7 @@ export class PunchInUseCase {
       page: 1,
     })
 
-    const lastTime = times.reduce((acc: Time | null, time) => {
+    const time = times.reduce((acc: Time | null, time) => {
       if (!acc) return time
 
       if (time.start > acc.start) {
@@ -65,19 +60,18 @@ export class PunchInUseCase {
       return acc
     }, null)
 
-    if (lastTime && !lastTime.end) {
-      return left(new AlreadyPunchedInError())
+    if (!time) {
+      return left(new ResourceNotFoundError())
     }
 
-    const time = Time.create({
-      start: date,
-      punchId: punch.id,
-    })
+    if (time.end) {
+      return left(new AlreadyPunchedOutError())
+    }
 
-    await this.timesRepository.create(time)
+    time.end = date
+    await this.timesRepository.save(time)
 
     return right({
-      punch,
       time,
     })
   }
